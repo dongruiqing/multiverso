@@ -25,6 +25,7 @@
 #include <multiverso/table_factory.h>
 
 #include <gtest/gtest.h>
+#include <Windows.h>
 
 using namespace multiverso;
 
@@ -88,7 +89,7 @@ void TestArray(int argc, char* argv[]) {
   multiverso::SetCMDFlag("sync", true);
   MV_Init(&argc, argv);
 
-  size_t array_size = 5;
+  size_t array_size = 10;
 
   ArrayWorker<int>* shared_array = MV_CreateTable(ArrayTableOption<int>(array_size));
 
@@ -101,10 +102,12 @@ void TestArray(int argc, char* argv[]) {
   int* data = new int[array_size];
 
   int iter = 1000000000;
-
+  shared_array->Get(data, array_size);
+  Sleep(MV_WorkerId() * 100);
   for (int i = 0; i < iter; ++i) {
     shared_array->Add(delta.data(), array_size);
     shared_array->Get(data, array_size);
+    Sleep(MV_WorkerId() * 100);
     for (int k = 0; k < array_size; ++k) {
       if (data[k] != delta[k] * (i + 1) * MV_NumWorkers()) {
         std::cout << "i + 1 = " << i + 1 << " k = " << k << std::endl;
@@ -115,6 +118,7 @@ void TestArray(int argc, char* argv[]) {
       }
     }
     if (i % 1000 == 0) { printf("iter = %d\n", i); fflush(stdout); }
+    { printf("iter = %d\n", i); fflush(stdout); }
   }
   MV_ShutDown();
 }
@@ -328,7 +332,7 @@ void TestMatrix(int argc, char* argv[]){
     //MV_Barrier();
     //worker_table->Get(v, data_rows, num_col);
 
-    if (count % 1000 == 0)
+    if (count % 10 == 0)
     {
       printf("Sparse Add/Get, #test: %d.\n", count);
       fflush(stdout);
@@ -344,7 +348,7 @@ void TestMatrix(int argc, char* argv[]){
         << i << ", col:" << j << ", expected: " << expected << ", actual: " << actual;
       }
     }
-
+    Sleep(MV_WorkerId() * 10);
   }
   worker_tables.clear();
   MV_ShutDown();

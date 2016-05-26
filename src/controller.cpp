@@ -9,6 +9,15 @@
 
 namespace multiverso {
 
+namespace ctrl {
+
+static bool is_console_running = true;
+
+void ConsoleStop() { is_console_running = false; }
+bool console_running() { return is_console_running; }
+
+}
+
 class Controller::BarrierController {
 public:
   explicit BarrierController(Controller* parent) : parent_(parent) {}

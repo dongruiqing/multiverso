@@ -14,6 +14,10 @@
 #include "multiverso/util/mt_queue.h"
 #include "multiverso/worker.h"
 
+#ifdef _MSC_VER
+#include <consoleapi.h>
+#endif
+
 namespace multiverso {
 
 Zoo::Zoo() {}
@@ -36,6 +40,9 @@ int ParsePSRole(const std::string& ps_role) {
 
 void Zoo::Start(int* argc, char** argv) {
   Log::Debug("Zoo started\n");
+#ifdef _MSC_VER
+  SetConsoleCtrlHandler((PHANDLER_ROUTINE)ctrl::ConsoleStop, TRUE);
+#endif
   ParseCMDFlags(argc, argv);
 
   // Init the network

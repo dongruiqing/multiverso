@@ -24,6 +24,11 @@ private:
   ClockController* clock_controller_;
 };
 
+namespace ctrl {
+void ConsoleStop();
+bool console_running();
+}
+
 }  // namespace multiverso
 
 #endif  // MULTIVERSO_CONTROLLER_H_
