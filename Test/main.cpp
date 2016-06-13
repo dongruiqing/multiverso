@@ -90,9 +90,13 @@ void TestArray(int argc, char* argv[]) {
   multiverso::SetCMDFlag("sync", true);
   MV_Init(&argc, argv);
 
-  size_t array_size = 10;
+  size_t array_size = 10000;
 
   ArrayWorker<int>* shared_array = MV_CreateTable(ArrayTableOption<int>(array_size));
+  ArrayWorker<int>* shared_array2 = MV_CreateTable(ArrayTableOption<int>(array_size));
+  ArrayWorker<int>* shared_array3 = MV_CreateTable(ArrayTableOption<int>(array_size));
+  ArrayWorker<int>* shared_array4 = MV_CreateTable(ArrayTableOption<int>(array_size));
+  ArrayWorker<int>* shared_array5 = MV_CreateTable(ArrayTableOption<int>(array_size));
 
   MV_Barrier();
   Log::Info("Create tables OK. Rank = %d, worker_id = %d\n", MV_Rank(), MV_WorkerId());
@@ -104,11 +108,17 @@ void TestArray(int argc, char* argv[]) {
 
   int iter = 1000000000;
   shared_array->Get(data, array_size);
-  Sleep(MV_WorkerId() * 100);
   for (int i = 0; i < iter; ++i) {
     shared_array->Add(delta.data(), array_size);
+    shared_array2->Add(delta.data(), array_size);
+    shared_array3->Add(delta.data(), array_size);
+    shared_array4->Add(delta.data(), array_size);
+    shared_array5->Add(delta.data(), array_size);
     shared_array->Get(data, array_size);
-    Sleep(MV_WorkerId() * 100);
+    shared_array2->Get(data, array_size);
+    shared_array3->Get(data, array_size);
+    shared_array4->Get(data, array_size);
+    shared_array5->Get(data, array_size);
     for (int k = 0; k < array_size; ++k) {
       if (data[k] != delta[k] * (i + 1) * MV_NumWorkers()) {
         std::cout << "i + 1 = " << i + 1 << " k = " << k << std::endl;

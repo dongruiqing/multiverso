@@ -75,7 +75,7 @@ public:
     int num_worker = Zoo::Get()->num_workers();
     worker_get_clocks_.reset(new VectorClock(num_worker));
     worker_add_clocks_.reset(new VectorClock(num_worker));
-    num_add_request_.resize(num_worker, 0);
+    num_waited_add_.resize(num_worker, 0);
   }
 
   // make some modification to suit to the sync server
@@ -154,11 +154,11 @@ protected:
       MessagePtr msg;
       while (!msg_get_cache_.Empty()) {
         CHECK(msg_get_cache_.Pop(msg));
-        Log::Info("Server %d get cache msg from %d\n", Zoo::Get()->rank_to_worker_id(msg->src()));
+        Log::Info("Server %d get cache msg from %d\n", MV_ServerId(), Zoo::Get()->rank_to_worker_id(msg->src()));
       }
       while (!msg_add_cache_.Empty()) {
         CHECK(msg_add_cache_.Pop(msg));
-        Log::Info("Server %d add cache msg from %d\n", Zoo::Get()->rank_to_worker_id(msg->src()));
+        Log::Info("Server %d add cache msg from %d\n", MV_ServerId(), Zoo::Get()->rank_to_worker_id(msg->src()));
       }
       exit(1);
     }
@@ -166,10 +166,10 @@ protected:
   void ProcessAdd(MessagePtr& msg) override {
     // 1. Before add: cache faster worker
     int worker = Zoo::Get()->rank_to_worker_id(msg->src());
-    ++num_add_request_[worker];
     if (worker_get_clocks_->local_clock(worker) >
         worker_get_clocks_->global_clock()) {
       msg_add_cache_.Push(msg);
+      ++num_waited_add_[worker];
       // Log::Info("Server %d: ProcessAdd, cache ADD from worker %d\n", MV_ServerId(), worker);
       return;
     }
@@ -194,9 +194,9 @@ protected:
     // 1. Before get: cache faster worker
     int worker = Zoo::Get()->rank_to_worker_id(msg->src());
     if (worker_add_clocks_->local_clock(worker) > worker_add_clocks_->global_clock() || 
-        // worker_add_clocks_->local_clock(worker) > num_add_request_[worker]) {
-        worker_get_clocks_->local_clock(worker) > 
-        worker_get_clocks_->global_clock()) {
+        // worker_get_clocks_->local_clock(worker) > 
+        // worker_get_clocks_->global_clock()) {
+        num_waited_add_[worker] > 0) {
       // Will wait for other worker finished Add
       msg_get_cache_.Push(msg);
       // Log::Info("Server %d: ProcessGet, cache GET from worker %d\n", MV_ServerId(), worker);
@@ -214,6 +214,7 @@ protected:
         Server::ProcessAdd(add_msg);
         // Log::Info("Server %d: ProcessGet, process cache ADD from worker %d\n", MV_ServerId(), add_worker);
         CHECK(!worker_add_clocks_->Update(add_worker));
+        --num_waited_add_[add_worker];
       }
     }
   }
@@ -247,7 +248,7 @@ protected:
 private:
   std::unique_ptr<VectorClock> worker_get_clocks_;
   std::unique_ptr<VectorClock> worker_add_clocks_;
-  std::vector<int> num_add_request_;
+  std::vector<int> num_waited_add_;
 
   MtQueue<MessagePtr> msg_add_cache_;
   MtQueue<MessagePtr> msg_get_cache_;
